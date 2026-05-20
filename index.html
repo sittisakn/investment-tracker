@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investment Portfolio Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #070d1a;
+      --bg-card: #0f1729;
+      --bg-input: #1a2438;
+      --border: #1e2d45;
+      --text: #e8f0fe;
+      --text-muted: #5a7095;
+      --text-sub: #8ba3c4;
+      --primary: #5b6cf8;
+      --green: #22c55e;
+      --red: #f43f5e;
+      --yellow: #f59e0b;
+      --thai: #22c55e;
+      --us: #5b6cf8;
+      --fund: #f59e0b;
+      --radius: 14px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+    /* ── Header ── */
+    .header{background:linear-gradient(135deg,#0d1640 0%,#0a1020 100%);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;}
+    .header-left{display:flex;align-items:center;gap:14px;}
+    .header-left h1{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.3px;}
+    .live-badge{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.25);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.05em;}
+    .header-date{color:var(--text-muted);font-size:12px;}
+
+    /* ── Tabs ── */
+    .tabs-nav{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 32px;display:flex;}
+    .tab-btn{padding:14px 22px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;outline:none;}
+    .tab-btn:hover{color:var(--text-sub);}
+    .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+
+    /* ── Panes ── */
+    .pane{display:none;padding:28px 32px;}
+    .pane.active{display:block;}
+
+    /* ── Port grid ── */
+    .port-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+
+    /* ── Card ── */
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+    .card-head{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+    .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .card-title{font-size:15px;font-weight:600;flex:1;}
+    .cur-tag{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;}
+    .thai-card .dot{background:var(--thai);}
+    .thai-card .cur-tag{background:rgba(34,197,94,.1);color:var(--thai);border:1px solid rgba(34,197,94,.2);}
+    .us-card .dot{background:var(--us);}
+    .us-card .cur-tag{background:rgba(91,108,248,.1);color:var(--us);border:1px solid rgba(91,108,248,.2);}
+    .fund-card .dot{background:var(--fund);}
+    .fund-card .cur-tag{background:rgba(245,158,11,.1);color:var(--fund);border:1px solid rgba(245,158,11,.2);}
+
+    /* ── Form ── */
+    .ff{margin-bottom:13px;}
+    .fl{display:block;color:var(--text-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+    input,select{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s;}
+    input:focus,select:focus{border-color:var(--primary);}
+    select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a7095' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;-webkit-appearance:none;}
+    select option{background:#1a2438;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+    /* ── Buttons ── */
+    .btn{width:100%;padding:10px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:.01em;}
+    .btn:hover{filter:brightness(1.12);transform:translateY(-1px);}
+    .btn:active{transform:translateY(0);}
+    .btn-thai{background:var(--thai);color:#062012;}
+    .btn-us{background:var(--us);color:#fff;}
+    .btn-fund{background:var(--fund);color:#1a0e00;}
+    .del-btn{display:flex;align-items:center;padding:5px 9px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.18);border-radius:6px;color:var(--red);font-size:12px;cursor:pointer;transition:all .15s;flex-shrink:0;}
+    .del-btn:hover{background:rgba(244,63,94,.18);}
+
+    /* ── Entry list ── */
+    .entries{margin-top:16px;}
+    .entries-head{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+    .entry{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-input);border-radius:9px;margin-bottom:6px;border:1px solid var(--border);gap:8px;}
+    .entry-name{font-weight:700;font-size:13px;}
+    .entry-detail{font-size:11px;color:var(--text-muted);margin-top:2px;}
+
+    /* ── Summary header ── */
+    .sum-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+    .sum-title h2{font-size:19px;font-weight:700;}
+    .sum-title p{color:var(--text-muted);font-size:12px;margin-top:4px;}
+    .sum-controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+    .rate-wrap{display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:8px 14px;}
+    .rate-wrap label{font-size:12px;color:var(--text-muted);white-space:nowrap;}
+    .rate-wrap input{width:68px;padding:5px 8px;font-size:13px;}
+    .update-btn{display:flex;align-items:center;gap:8px;padding:10px 24px;background:linear-gradient(135deg,#5b6cf8,#8b5cf6);border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .update-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+    .update-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none;}
+    .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── Data bar ── */
+    .data-bar{background:var(--bg-card);border-bottom:1px solid var(--border);padding:9px 32px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .data-bar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .dbar-btn{display:flex;align-items:center;gap:5px;padding:6px 13px;border:1px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-sub);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .dbar-btn:hover{border-color:var(--primary);color:var(--text);}
+    .dbar-sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+    .dbar-status{font-size:11px;padding:4px 10px;border-radius:5px;transition:opacity .3s;}
+    .dbar-ok{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+    .dbar-err{background:rgba(244,63,94,.12);color:var(--red);border:1px solid rgba(244,63,94,.2);}
+    .dbar-info{color:var(--text-muted);font-size:11px;}
+    /* ── Export button ── */
+    .export-btn{display:flex;align-items:center;gap:8px;padding:10px 22px;background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .export-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+
+    /* ── Stats ── */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+    .stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+    .stat-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;}
+    .stat-val{font-size:19px;font-weight:800;}
+    .stat-sub{font-size:12px;margin-top:4px;color:var(--text-muted);}
+    .pos{color:var(--green);}
+    .neg{color:var(--red);}
+
+    /* ── Table section ── */
+    .tsec{margin-bottom:26px;}
+    .tsec-head{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+    .tsec-title{font-size:15px;font-weight:600;}
+    .cnt{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--bg-input);color:var(--text-muted);}
+    .twrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+    table{width:100%;border-collapse:collapse;}
+    thead tr{background:var(--bg-input);}
+    th{padding:10px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+    td{padding:13px 16px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle;}
+    tbody tr:hover td{background:rgba(255,255,255,.018);}
+    .pl-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;}
+    .pl-pos{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+    .pl-neg{background:rgba(244,63,94,.1);color:var(--red);border:1px solid rgba(244,63,94,.2);}
+    .pl-zero{background:var(--bg-input);color:var(--text-muted);}
+    .err-price{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);background:var(--bg-input);padding:2px 8px;border-radius:5px;}
+    .nav-inp{width:92px;padding:5px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;text-align:right;outline:none;transition:border-color .15s;}
+    .nav-inp:focus{border-color:var(--primary);}
+    .nav-inp::placeholder{color:var(--text-muted);}
+    .empty{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;}
+
+    /* ── Charts ── */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px;}
+    .chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+    .chart-card-title{font-size:14px;font-weight:600;margin-bottom:16px;}
+    .chart-box{position:relative;height:270px;}
+
+    /* ── Dividend tab ── */
+    .div-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+
+    /* ── Monthly Target card ── */
+    .monthly-target-card{display:flex;align-items:stretch;gap:0;background:linear-gradient(135deg,rgba(91,108,248,.12) 0%,rgba(34,197,94,.08) 100%);border:1px solid rgba(91,108,248,.25);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;gap:24px;}
+    .mt-left{flex:1;min-width:0;}
+    .mt-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;}
+    .mt-main{font-size:34px;font-weight:800;color:var(--green);line-height:1;margin-bottom:4px;}
+    .mt-thb{font-size:14px;color:var(--text-sub);margin-bottom:6px;}
+    .mt-source{font-size:11px;color:var(--text-muted);font-style:italic;}
+    .mt-divider{width:1px;background:var(--border);margin:0 4px;flex-shrink:0;}
+    .mt-right{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;}
+    .mt-item{display:flex;justify-content:space-between;align-items:center;}
+    .mt-item-label{font-size:12px;color:var(--text-muted);}
+    .mt-item-val{font-size:14px;font-weight:700;}
+    .div-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+    .reinv-preview{background:var(--bg-input);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:14px;font-size:13px;}
+    .reinv-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+    .reinv-row:last-child{margin-bottom:0;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;font-weight:700;}
+    .div-green-btn{background:var(--green);color:#062012;}
+    .div-by-stock{margin-top:4px;}
+
+    /* ── Responsive ── */
+    @media(max-width:1024px){.port-grid{grid-template-columns:1fr;}.stats{grid-template-columns:repeat(2,1fr);}.charts-grid{grid-template-columns:1fr;}.div-grid{grid-template-columns:1fr;}.div-stats{grid-template-columns:1fr 1fr;}}
+    @media(max-width:640px){.pane{padding:18px 14px;}.tabs-nav,.header{padding-left:16px;padding-right:16px;}.stats{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Portfolio Tracker</h1>
+    <span class="live-badge">LIVE</span>
+  </div>
+  <span class="header-date" id="hdr-date"></span>
+</div>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="switchTab('update')">Update Investment</button>
+  <button class="tab-btn" onclick="switchTab('summary')">Summary</button>
+  <button class="tab-btn" onclick="switchTab('dividend')">Dividend Yield</button>
+</div>
+
+<!-- ═══════════════════ Proxy status banner ═══════════════════ -->
+<div id="proxy-banner" style="display:none;background:#1a0e00;border-bottom:1px solid #92400e;padding:9px 32px;display:flex;align-items:center;gap:10px;font-size:12px;">
+  <span style="color:#f59e0b;font-size:16px">⚠</span>
+  <span style="color:#fcd34d">Live price updates need the local proxy running.</span>
+  <span style="color:#92400e">Open a terminal and run:</span>
+  <code style="background:#2d1a00;color:#fbbf24;padding:3px 10px;border-radius:5px;font-size:12px;border:1px solid #92400e">python3 /Users/mbp/Cee_Project/proxy.py</code>
+  <button onclick="checkProxy(true)" style="margin-left:auto;padding:4px 12px;border:1px solid #92400e;border-radius:6px;background:transparent;color:#f59e0b;cursor:pointer;font-size:11px">Retry</button>
+</div>
+
+<!-- ═══════════════════ Data management bar ═══════════════════ -->
+<div class="data-bar">
+  <div class="data-bar-left">
+    <button class="dbar-btn" onclick="saveJSON()">💾 Save yo.json</button>
+    <button class="dbar-btn" onclick="loadJSON()">📂 Load yo.json</button>
+    <input type="file" id="json-file" accept=".json" onchange="onJSONLoad(event)" style="display:none">
+    <span class="dbar-sep"></span>
+    <span class="dbar-info" id="dbar-info">Data stored in browser · use Save/Load to sync yo.json</span>
+  </div>
+  <span id="dbar-status"></span>
+</div>
+
+<!-- ═══════════════════ UPDATE TAB ═══════════════════ -->
+<div class="pane active" id="pane-update">
+  <div class="port-grid">
+
+    <!-- Thai Stock -->
+    <div class="card thai-card">
+      <div class="card-head">
+        <span class="dot"></span>
+        <span class="card-title">Thai Stock</span>
+        <span class="cur-tag">THB ฿</span>
+      </div>
+      <div class="ff">
+        <label class="fl">Select Existing</label>
+        <select id="thai-sel" onchange="onSel('thai')">
+          <option value="">— Add New Stock —</option>
+        </select>
+      </div>
+      <div class="ff">
+        <label class="fl">Stock Name / Ticker</label>
+        <input type="text" id="thai-name" placeholder="e.g. PTT, KBANK, SCB" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="ff">
+          <label class="fl">Buy Price (฿)</label>
+          <input type="number" id="thai-price" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="ff">
+          <label class="fl">Shares</label>
+          <input type="number" id="thai-qty" placeholder="0" step="1" min="0">
+        </div>
+      </div>
+      <div class="ff">
+        <label class="fl">Buy Date</label>
+        <input type="date" id="thai-date">
+      </div>
+      <button class="btn btn-thai" onclick="addEntry('thai')">+ Add to Thai Portfolio</button>
+      <div class="entries" id="thai-entries"></div>
+    </div>
+
+    <!-- US Stock -->
+    <div class="card us-card">
+      <div class="card-head">
+        <span class="dot"></span>
+        <span class="card-title">US Stock</span>
+        <span class="cur-tag">USD $</span>
+      </div>
+      <div class="ff">
+        <label class="fl">Select Existing</label>
+        <select id="us-sel" onchange="onSel('us')">
+          <option value="">— Add New Stock —</option>
+        </select>
+      </div>
+      <div class="ff">
+        <label class="fl">Stock Name / Ticker</label>
+        <input type="text" id="us-name" placeholder="e.g. AAPL, MSFT, NVDA" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="ff">
+          <label class="fl">Buy Price ($)</label>
+          <input type="number" id="us-price" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="ff">
+          <label class="fl">Shares</label>
+          <input type="number" id="us-qty" placeholder="0" step="1" min="0">
+        </div>
+      </div>
+      <div class="ff">
+        <label class="fl">Buy Date</label>
+        <input type="date" id="us-date">
+      </div>
+      <button class="btn btn-us" onclick="addEntry('us')">+ Add to US Portfolio</button>
+      <div class="entries" id="us-entries"></div>
+    </div>
+
+    <!-- Invest Fund -->
+    <div class="card fund-card">
+      <div class="card-head">
+        <span class="dot"></span>
+        <span class="card-title">Invest Fund</span>
+        <span class="cur-tag">THB ฿</span>
+      </div>
+      <div class="ff">
+        <label class="fl">Select Existing</label>
+        <select id="fund-sel" onchange="onSel('fund')">
+          <option value="">— Add New Fund —</option>
+        </select>
+      </div>
+      <div class="ff">
+        <label class="fl">Fund Name / Code</label>
+        <input type="text" id="fund-name" placeholder="e.g. KFSDIV, TISCOMS" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="ff">
+          <label class="fl">Buy Price (฿)</label>
+          <input type="number" id="fund-price" placeholder="0.0000" step="0.0001" min="0">
+        </div>
+        <div class="ff">
+          <label class="fl">Units</label>
+          <input type="number" id="fund-qty" placeholder="0.0000" step="0.0001" min="0">
+        </div>
+      </div>
+      <div class="ff">
+        <label class="fl">Buy Date</label>
+        <input type="date" id="fund-date">
+      </div>
+      <button class="btn btn-fund" onclick="addEntry('fund')">+ Add to Fund Portfolio</button>
+      <div class="entries" id="fund-entries"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════ SUMMARY TAB ═══════════════════ -->
+<div class="pane" id="pane-summary">
+
+  <div class="sum-top">
+    <div class="sum-title">
+      <h2>Portfolio Summary</h2>
+      <p id="last-updated">Click "Update Prices" to load live data from Yahoo Finance</p>
+    </div>
+    <div class="sum-controls">
+      <div class="rate-wrap">
+        <label>USD/THB</label>
+        <input type="number" id="fx-rate" value="35.0" step="0.1" min="1">
+      </div>
+      <div class="rate-wrap" title="Optional: get a free key at twelvedata.com (no proxy needed)">
+        <label style="white-space:nowrap">Twelve Data Key <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--primary);font-size:10px;text-decoration:none">free↗</a></label>
+        <input type="text" id="td-key" placeholder="optional" style="width:110px;font-size:12px"
+          oninput="saveTDKey(this.value)" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="update-btn" id="upd-btn" onclick="updatePrices()">
+        <span id="upd-icon">⟳</span> Update Prices
+      </button>
+      <button class="export-btn" onclick="exportReport()">📄 Export Report</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Portfolio (THB)</div>
+      <div class="stat-val" id="s-total">—</div>
+      <div class="stat-sub" id="s-pl">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Thai Stocks</div>
+      <div class="stat-val" id="s-thai" style="color:var(--thai)">—</div>
+      <div class="stat-sub" id="s-thai-pl">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">US Stocks (USD)</div>
+      <div class="stat-val" id="s-us" style="color:var(--us)">—</div>
+      <div class="stat-sub" id="s-us-pl">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Invest Funds</div>
+      <div class="stat-val" id="s-fund" style="color:var(--fund)">—</div>
+      <div class="stat-sub" id="s-fund-pl">—</div>
+    </div>
+  </div>
+
+  <!-- US Stock Table -->
+  <div class="tsec">
+    <div class="tsec-head">
+      <span class="dot" style="background:var(--us)"></span>
+      <span class="tsec-title">US Stocks</span>
+      <span class="cnt" id="cnt-us">0</span>
+    </div>
+    <div id="tbl-us"><div class="twrap"><div class="empty">No entries yet.</div></div></div>
+  </div>
+
+  <!-- Thai Stock Table -->
+  <div class="tsec">
+    <div class="tsec-head">
+      <span class="dot" style="background:var(--thai)"></span>
+      <span class="tsec-title">Thai Stocks</span>
+      <span class="cnt" id="cnt-thai">0</span>
+    </div>
+    <div id="tbl-thai"><div class="twrap"><div class="empty">No entries yet.</div></div></div>
+  </div>
+
+  <!-- Invest Fund Table -->
+  <div class="tsec">
+    <div class="tsec-head">
+      <span class="dot" style="background:var(--fund)"></span>
+      <span class="tsec-title">Investment Funds</span>
+      <span class="cnt" id="cnt-fund">0</span>
+    </div>
+    <div id="tbl-fund"><div class="twrap"><div class="empty">No entries yet.</div></div></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-card-title">Allocation by Category (THB)</div>
+      <div class="chart-box"><canvas id="ch-alloc"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Holdings Distribution (THB)</div>
+      <div class="chart-box"><canvas id="ch-hold"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════ DIVIDEND YIELD TAB ═══════════════════ -->
+<div class="pane" id="pane-dividend">
+
+  <!-- Stats row 1: actual received -->
+  <div class="div-stats">
+    <div class="stat">
+      <div class="stat-label">Total Dividends Received</div>
+      <div class="stat-val pos" id="div-total">$0.00</div>
+      <div class="stat-sub" id="div-count" style="color:var(--text-muted)">0 payments</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Reinvested</div>
+      <div class="stat-val" id="div-reinvested" style="color:var(--us)">$0.00</div>
+      <div class="stat-sub" id="div-reinvest-count" style="color:var(--text-muted)">0 transactions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Available to Reinvest</div>
+      <div class="stat-val" id="div-balance" style="color:var(--fund)">$0.00</div>
+      <div class="stat-sub" style="color:var(--text-muted)">USD balance</div>
+    </div>
+  </div>
+
+  <!-- Monthly Target Yield summary -->
+  <div class="monthly-target-card">
+    <div class="mt-left">
+      <div class="mt-label">Monthly Target Yield</div>
+      <div class="mt-main" id="mt-monthly">—</div>
+      <div class="mt-thb" id="mt-monthly-thb"></div>
+      <div class="mt-source" id="mt-source">Update prices to calculate projected yield</div>
+    </div>
+    <div class="mt-divider"></div>
+    <div class="mt-right">
+      <div class="mt-item">
+        <span class="mt-item-label">Annual Projected</span>
+        <span class="mt-item-val pos" id="mt-annual">—</span>
+      </div>
+      <div class="mt-item">
+        <span class="mt-item-label">÷ 12 months</span>
+        <span class="mt-item-val" id="mt-monthly2" style="color:var(--primary)">—</span>
+      </div>
+      <div class="mt-item" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+        <span class="mt-item-label">Avg Monthly (Actual)</span>
+        <span class="mt-item-val" id="mt-actual-avg" style="color:var(--green)">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two-column form area -->
+  <div class="div-grid">
+
+    <!-- Left: Record Dividend -->
+    <div class="card">
+      <div class="card-head">
+        <span class="dot" style="background:var(--green)"></span>
+        <span class="card-title">Record Dividend Received</span>
+        <span class="cur-tag" style="background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)">USD $</span>
+      </div>
+      <div class="ff">
+        <label class="fl">From US Stock</label>
+        <select id="div-stock">
+          <option value="">— Select Stock —</option>
+        </select>
+      </div>
+      <div class="ff">
+        <label class="fl">Dividend Amount (USD)</label>
+        <input type="number" id="div-amount" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="ff">
+        <label class="fl">Date Received</label>
+        <input type="date" id="div-date">
+      </div>
+      <button class="btn div-green-btn" onclick="addDividend()">+ Record Dividend</button>
+      <div id="div-history" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Right: Reinvest -->
+    <div class="card">
+      <div class="card-head">
+        <span class="dot" style="background:var(--us)"></span>
+        <span class="card-title">Reinvest into US Stock</span>
+        <span class="cur-tag" style="background:rgba(91,108,248,.1);color:var(--us);border:1px solid rgba(91,108,248,.2)">USD $</span>
+      </div>
+      <div class="ff">
+        <label class="fl">Buy US Stock</label>
+        <select id="reinv-stock" onchange="calcReinvest()">
+          <option value="">— Select Stock —</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="ff">
+          <label class="fl">Price / Share ($)</label>
+          <input type="number" id="reinv-price" placeholder="0.00" step="0.01" min="0" oninput="calcReinvest()">
+        </div>
+        <div class="ff">
+          <label class="fl">Shares</label>
+          <input type="number" id="reinv-shares" placeholder="0.0000" step="0.0001" min="0" oninput="calcReinvest()">
+        </div>
+      </div>
+      <div class="ff">
+        <label class="fl">Buy Date</label>
+        <input type="date" id="reinv-date">
+      </div>
+      <div class="reinv-preview">
+        <div class="reinv-row"><span style="color:var(--text-muted)">Total Cost</span><span id="reinv-cost">$0.00</span></div>
+        <div class="reinv-row"><span style="color:var(--text-muted)">Available Balance</span><span id="reinv-avail">$0.00</span></div>
+        <div class="reinv-row"><span style="color:var(--text-muted)">Remaining After</span><span id="reinv-remain">$0.00</span></div>
+      </div>
+      <button class="btn btn-us" onclick="reinvestDividend()">↪ Reinvest → Add to US Portfolio</button>
+      <div id="reinv-history" style="margin-top:16px"></div>
+    </div>
+
+  </div>
+
+  <!-- Breakdown by stock -->
+  <div class="tsec">
+    <div class="tsec-head">
+      <span class="dot" style="background:var(--green)"></span>
+      <span class="tsec-title">Dividend Income by Stock</span>
+    </div>
+    <div class="div-by-stock" id="div-by-stock">
+      <div class="twrap"><div class="empty">No dividend records yet.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ──────────────────────────────────────────
+//  State
+// ──────────────────────────────────────────
+let port       = JSON.parse(localStorage.getItem('inv_v2')         || '{"thai":[],"us":[],"fund":[]}');
+let live       = {};
+let ch         = {};
+let manualNAV  = JSON.parse(localStorage.getItem('inv_manual_nav')  || '{}');
+let dividends  = JSON.parse(localStorage.getItem('inv_dividends')   || '[]');
+let reinvests  = JSON.parse(localStorage.getItem('inv_reinvests')   || '[]');
+
+// ──────────────────────────────────────────
+//  Twelve Data API key
+// ──────────────────────────────────────────
+function saveTDKey(val) {
+  const k = val.trim();
+  if (k) localStorage.setItem('td_apikey', k);
+  else    localStorage.removeItem('td_apikey');
+}
+
+// ──────────────────────────────────────────
+//  Proxy health check
+// ──────────────────────────────────────────
+let proxyOk = false;
+
+async function checkProxy(manual) {
+  try {
+    const r = await fetchWithTimeout('http://localhost:3001/health', 2000);
+    proxyOk = r.ok;
+  } catch {
+    proxyOk = false;
+  }
+  const banner = document.getElementById('proxy-banner');
+  if (proxyOk) {
+    banner.style.display = 'none';
+    if (manual) showStatus('Proxy connected ✓', 'ok');
+  } else {
+    banner.style.display = 'flex';
+  }
+}
+
+// ──────────────────────────────────────────
+//  Boot
+// ──────────────────────────────────────────
+function init() {
+  const today = new Date().toISOString().split('T')[0];
+  ['thai','us','fund'].forEach(c => { document.getElementById(`${c}-date`).value = today; });
+  ['div-date','reinv-date'].forEach(id => { const el=document.getElementById(id); if(el) el.value=today; });
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  // Restore Twelve Data key
+  const tdEl = document.getElementById('td-key');
+  if (tdEl) tdEl.value = localStorage.getItem('td_apikey') || '';
+
+  rebuildDropdowns();
+  renderEntries();
+  refreshCounts();
+  setTimeout(renderFundNAVTable, 0);
+  checkProxy(false);
+}
+
+// ──────────────────────────────────────────
+//  Tabs
+// ──────────────────────────────────────────
+function switchTab(t) {
+  const tabs = ['update','summary','dividend'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === t));
+  tabs.forEach(tab => document.getElementById(`pane-${tab}`).classList.toggle('active', tab === t));
+  if (t === 'summary')  renderFundNAVTable();
+  if (t === 'dividend') renderDivTab();
+}
+
+// ──────────────────────────────────────────
+//  Portfolio helpers
+// ──────────────────────────────────────────
+function save() { localStorage.setItem('inv_v2', JSON.stringify(port)); }
+
+function unique(cat) { return [...new Set(port[cat].map(e=>e.name))]; }
+
+function rebuildDropdowns() {
+  ['thai','us','fund'].forEach(cat => {
+    const sel = document.getElementById(`${cat}-sel`);
+    const prev = sel.value;
+    const lbl = cat==='fund'?'Fund':'Stock';
+    sel.innerHTML = `<option value="">— Add New ${lbl} —</option>`;
+    unique(cat).forEach(n => { const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o); });
+    if (prev) sel.value = prev;
+  });
+}
+
+function onSel(cat) {
+  const v = document.getElementById(`${cat}-sel`).value;
+  if (v) document.getElementById(`${cat}-name`).value = v;
+}
+
+function addEntry(cat) {
+  const name  = document.getElementById(`${cat}-name`).value.trim().toUpperCase();
+  const price = parseFloat(document.getElementById(`${cat}-price`).value);
+  const qty   = parseFloat(document.getElementById(`${cat}-qty`).value);
+  const date  = document.getElementById(`${cat}-date`).value;
+  if (!name) { alert('Please enter a name.'); return; }
+  if (!price||price<=0) { alert('Please enter a valid buy price.'); return; }
+  if (!qty||qty<=0) { alert('Please enter a valid quantity.'); return; }
+  if (!date) { alert('Please select a date.'); return; }
+  port[cat].push({ id:Date.now(), name, buyPrice:price, quantity:qty, buyDate:date });
+  save(); rebuildDropdowns(); renderEntries(); refreshCounts();
+  document.getElementById(`${cat}-name`).value='';
+  document.getElementById(`${cat}-price`).value='';
+  document.getElementById(`${cat}-qty`).value='';
+  document.getElementById(`${cat}-sel`).value='';
+  document.getElementById(`${cat}-date`).value=new Date().toISOString().split('T')[0];
+}
+
+function delEntry(cat, id) {
+  port[cat]=port[cat].filter(e=>e.id!==id);
+  save(); rebuildDropdowns(); renderEntries(); refreshCounts();
+}
+
+function renderEntries() {
+  ['thai','us','fund'].forEach(cat => {
+    const el = document.getElementById(`${cat}-entries`);
+    if (!port[cat].length) { el.innerHTML=''; return; }
+    const cur = cat==='us' ? '$' : '฿';
+    const unit = cat==='fund' ? 'units' : 'shares';
+    el.innerHTML = `<div class="entries-head">Entries (${port[cat].length})</div>` +
+      port[cat].map(e=>`
+        <div class="entry">
+          <div>
+            <div class="entry-name">${e.name}</div>
+            <div class="entry-detail">${cur}${fmt(e.buyPrice)} × ${fmt(e.quantity,4)} ${unit} · ${e.buyDate}</div>
+          </div>
+          <button class="del-btn" onclick="delEntry('${cat}',${e.id})">✕</button>
+        </div>`).join('');
+  });
+}
+
+function refreshCounts() {
+  ['thai','us','fund'].forEach(c=>{
+    document.getElementById(`cnt-${c}`).textContent = unique(c).length;
+  });
+}
+
+// ──────────────────────────────────────────
+//  Number formatting
+// ──────────────────────────────────────────
+function fmt(n, dec=2) {
+  if (n===null||n===undefined||isNaN(n)) return '—';
+  return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtTHB(n) { return n===null||isNaN(n)?'—':'฿'+fmt(n,0); }
+function fmtUSD(n) { return n===null||isNaN(n)?'—':'$'+fmt(n); }
+
+// ──────────────────────────────────────────
+//  Weighted average grouping
+// ──────────────────────────────────────────
+function grouped(entries) {
+  const g={};
+  entries.forEach(e=>{
+    if(!g[e.name]) g[e.name]={cost:0,qty:0};
+    g[e.name].cost += e.buyPrice*e.quantity;
+    g[e.name].qty  += e.quantity;
+  });
+  return Object.entries(g).map(([name,d])=>({name, avgCost:d.cost/d.qty, totalQty:d.qty, totalCost:d.cost}));
+}
+
+// ──────────────────────────────────────────
+//  Yahoo Finance v8 chart API via CORS proxy
+//  (v10/quoteSummary now requires crumb+cookie auth — v8/chart does not)
+// ──────────────────────────────────────────
+async function fetchWithTimeout(url, ms=7000) {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { 'Accept': 'application/json' } });
+    clearTimeout(tid);
+    return r;
+  } catch(e) { clearTimeout(tid); throw e; }
+}
+
+async function fetchProxy(url) {
+  const enc = encodeURIComponent(url);
+  const proxies = [
+    // Local Python proxy (most reliable — run: python3 proxy.py)
+    'http://localhost:3001/proxy?url=' + enc,
+    // Cloud fallbacks (may be unreliable)
+    'https://corsproxy.io/?' + enc,
+    'https://api.allorigins.win/raw?url=' + enc,
+    'https://thingproxy.freeboard.io/fetch/' + url,
+    'https://api.codetabs.com/v1/proxy?quest=' + enc,
+    'https://corsproxy.io/?' + url,
+  ];
+  for (const p of proxies) {
+    try {
+      const r = await fetchWithTimeout(p);
+      if (r.ok) {
+        // Stooq sometimes returns `"volume":}` for FX — clean empty values before parsing
+        const txt = (await r.text()).replace(/:,/g, ':null,').replace(/:}/g, ':null}');
+        try { return JSON.parse(txt); } catch { continue; }
+      }
+    } catch {}
+  }
+  throw new Error('All proxies failed — is proxy.py running? (python3 proxy.py)');
+}
+
+function parseDividends(result, price) {
+  const divMap = result.events?.dividends ?? {};
+  const divList = Object.values(divMap);
+  const now = Math.floor(Date.now() / 1000);
+  const yearAgo = now - 365 * 24 * 3600;
+  const annualDiv = divList.filter(d => d.date > yearAgo).reduce((s, d) => s + (d.amount || 0), 0);
+  const divYield = annualDiv > 0 ? ((annualDiv / price) * 100).toFixed(2) : null;
+  let nextDiv = null;
+  const sorted = divList.slice().sort((a, b) => b.date - a.date);
+  if (sorted.length >= 2) {
+    const freq = sorted[0].date - sorted[1].date;
+    const estimated = sorted[0].date + freq;
+    if (estimated > now) nextDiv = new Date(estimated * 1000).toISOString().split('T')[0];
+  }
+  return { divYield, nextDiv };
+}
+
+async function fetchStock(symbol) {
+  // ── Source 1: Yahoo Finance via proxy (query1 → query2) ──────────────────
+  for (const host of ['query1', 'query2']) {
+    try {
+      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1wk&range=1y&events=div`;
+      const json = await fetchProxy(url);
+      const result = json.chart?.result?.[0];
+      const price = result?.meta?.regularMarketPrice ?? null;
+      if (!price) continue;
+      const { divYield, nextDiv } = parseDividends(result, price);
+      console.log(`[fetchStock] ${symbol} → Yahoo (${host}): $${price}`);
+      return { price, divYield, nextDiv, src: 'Yahoo' };
+    } catch(e) {
+      console.warn(`[fetchStock] ${symbol} Yahoo ${host}: ${e.message}`);
+    }
+  }
+
+  // ── Source 2: Stooq via proxy (US stocks only, e.g. AAPL.US) ────────────
+  const isThaiTicker = symbol.toUpperCase().endsWith('.BK') || symbol.toUpperCase().endsWith('.TH');
+  if (!isThaiTicker) {
+    try {
+      const stooqSym = symbol.toUpperCase() + '.US';
+      const json = await fetchProxy(`https://stooq.com/q/l/?s=${encodeURIComponent(stooqSym)}&f=sd2t2ohlcv&h&e=json`);
+      const price = json.symbols?.[0]?.close ?? null;
+      if (price && price > 0) {
+        console.log(`[fetchStock] ${symbol} → Stooq: $${price}`);
+        return { price, divYield: null, nextDiv: null, src: 'Stooq' };
+      }
+    } catch(e) {
+      console.warn(`[fetchStock] ${symbol} Stooq: ${e.message}`);
+    }
+  }
+
+  // ── Source 3: Twelve Data (direct CORS — no proxy needed, free API key) ──
+  const tdKey = localStorage.getItem('td_apikey');
+  if (tdKey) {
+    try {
+      const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol)}&apikey=${tdKey}`;
+      const r = await fetchWithTimeout(url, 8000);
+      if (r.ok) {
+        const json = JSON.parse(await r.text());
+        if (!json.code) {
+          const price = parseFloat(json.price);
+          if (price > 0) {
+            console.log(`[fetchStock] ${symbol} → Twelve Data: $${price}`);
+            return { price, divYield: null, nextDiv: null, src: 'TwelveData' };
+          }
+        }
+      }
+    } catch(e) {
+      console.warn(`[fetchStock] ${symbol} TwelveData: ${e.message}`);
+    }
+  }
+
+  return { price: null, divYield: null, nextDiv: null, err: 'All sources failed' };
+}
+
+async function fetchFXRate() {
+  // Source 1: Yahoo Finance via proxy
+  for (const host of ['query1', 'query2']) {
+    try {
+      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/USDTHB%3DX?interval=1d&range=5d`;
+      const json = await fetchProxy(url);
+      const rate = json.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (rate && rate > 1) {
+        document.getElementById('fx-rate').value = rate.toFixed(2);
+        console.log(`[fetchFXRate] USD/THB = ${rate} via Yahoo ${host}`);
+        return rate;
+      }
+    } catch {}
+  }
+  // Source 2: Stooq FX backup (no volume field — Stooq leaves it empty for FX pairs)
+  try {
+    const json = await fetchProxy('https://stooq.com/q/l/?s=usdthb&f=sd2t2ohlc&h&e=json');
+    const rate = json.symbols?.[0]?.close ?? null;
+    if (rate && rate > 1) {
+      document.getElementById('fx-rate').value = rate.toFixed(2);
+      console.log(`[fetchFXRate] USD/THB = ${rate} via Stooq`);
+      return rate;
+    }
+  } catch {}
+  return parseFloat(document.getElementById('fx-rate').value) || 35;
+}
+
+// ── Thai stocks: Settrade → Yahoo .BK → Twelve Data :SET ─────────────────
+async function fetchThaiStock(symbol) {
+  // Source 1: Settrade (local proxy, quick 4s attempt)
+  try {
+    const url = `https://api.settrade.com/api/quote/stock/${encodeURIComponent(symbol)}/info`;
+    const r = await fetchWithTimeout('http://localhost:3001/proxy?url=' + encodeURIComponent(url), 4000);
+    if (r.ok) {
+      const json = JSON.parse(await r.text());
+      const price = json.last ?? json.lastTradedPrice ?? json.price ?? json.close ?? null;
+      if (price && price > 0) {
+        const raw = json.dividendYield ?? json.div_yield ?? json.yield ?? null;
+        const divYield = raw != null ? parseFloat(raw).toFixed(2) : null;
+        const nextDiv  = json.xd_date ?? json.xdDate ?? json.next_xd ?? null;
+        console.log(`[fetchThaiStock] ${symbol} → Settrade: ฿${price}`);
+        return { price, divYield, nextDiv, source: 'Settrade' };
+      }
+    }
+  } catch {}
+
+  // Source 2: Yahoo Finance .BK via proxy
+  const yf = await fetchStock(symbol + '.BK');
+  if (yf.price) {
+    console.log(`[fetchThaiStock] ${symbol} → Yahoo .BK: ฿${yf.price}`);
+    return { ...yf, source: 'Yahoo' };
+  }
+
+  // Source 3: Twelve Data :SET (direct CORS — no proxy needed)
+  const tdKey = localStorage.getItem('td_apikey');
+  if (tdKey) {
+    try {
+      const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol + ':SET')}&apikey=${tdKey}`;
+      const r = await fetchWithTimeout(url, 8000);
+      if (r.ok) {
+        const json = JSON.parse(await r.text());
+        if (!json.code) {
+          const price = parseFloat(json.price);
+          if (price > 0) {
+            console.log(`[fetchThaiStock] ${symbol} → Twelve Data :SET: ฿${price}`);
+            return { price, divYield: null, nextDiv: null, source: 'TwelveData' };
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return { price: null, divYield: null, nextDiv: null, source: null };
+}
+
+// ── Investment Funds (Settrade local proxy → manual NAV fallback) ─────────
+async function fetchFund(code) {
+  // Quick attempt via local proxy only
+  try {
+    const url = `https://api.settrade.com/api/quote/fund/${encodeURIComponent(code)}/info`;
+    const r = await fetchWithTimeout('http://localhost:3001/proxy?url=' + encodeURIComponent(url), 4000);
+    if (r.ok) {
+      const json = JSON.parse(await r.text());
+      const price = json.nav ?? json.navPerUnit ?? json.last ?? json.price ?? null;
+      if (price && price > 0) {
+        const raw = json.dividendYield ?? json.div_yield ?? json.yield ?? null;
+        const divYield = raw != null ? parseFloat(raw).toFixed(2) : null;
+        const nextDiv  = json.nextDividendDate ?? json.next_dividend ?? json.xd_date ?? null;
+        manualNAV[code] = price;
+        localStorage.setItem('inv_manual_nav', JSON.stringify(manualNAV));
+        console.log(`[fetchFund] ${code} via Settrade: ฿${price}`);
+        return { price, divYield, nextDiv, source: 'Settrade' };
+      }
+    }
+  } catch {}
+  // Fall back to last known manual NAV
+  const stored = manualNAV[code] ?? null;
+  console.warn(`[fetchFund] ${code} Settrade unavailable — using ${stored ? 'manual NAV' : 'no price'}`);
+  return { price: stored, divYield: null, nextDiv: null, source: stored ? 'Manual' : null };
+}
+
+function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// ──────────────────────────────────────────
+//  Update Prices (main action)
+// ──────────────────────────────────────────
+async function updatePrices() {
+  const btn    = document.getElementById('upd-btn');
+  const icon   = document.getElementById('upd-icon');
+  const status = document.getElementById('last-updated');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const rate = await fetchFXRate();
+    live = {};
+
+    // US stocks → Yahoo Finance v8
+    const usGrps = grouped(port.us);
+    live.us = [];
+    for (let i = 0; i < usGrps.length; i++) {
+      if (i > 0) await delay(350);
+      status.textContent = `Fetching US: ${usGrps[i].name} (${i+1}/${usGrps.length})…`;
+      const data = await fetchStock(usGrps[i].name);
+      live.us.push({ ...usGrps[i], ...data, source: data.price ? 'Yahoo' : null });
+    }
+
+    // Thai stocks → Settrade (Yahoo fallback)
+    const thaiGrps = grouped(port.thai);
+    live.thai = [];
+    for (let i = 0; i < thaiGrps.length; i++) {
+      if (i > 0) await delay(300);
+      status.textContent = `Fetching Thai: ${thaiGrps[i].name} (${i+1}/${thaiGrps.length})…`;
+      const data = await fetchThaiStock(thaiGrps[i].name);
+      live.thai.push({ ...thaiGrps[i], ...data });
+    }
+
+    // Investment funds → Settrade NAV (manual fallback)
+    const fundGrps = grouped(port.fund);
+    live.fund = [];
+    for (let i = 0; i < fundGrps.length; i++) {
+      if (i > 0) await delay(300);
+      status.textContent = `Fetching fund: ${fundGrps[i].name} (${i+1}/${fundGrps.length})…`;
+      const data = await fetchFund(fundGrps[i].name);
+      live.fund.push({ ...fundGrps[i], ...data });
+    }
+
+    renderTables(rate);
+    renderFundNAVTable();
+    renderStats(rate);
+    renderCharts(rate);
+    refreshCounts();
+    renderYieldSummary();
+
+    status.textContent = 'Last updated: ' +
+      new Date().toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' });
+
+  } catch(err) {
+    status.textContent = '⚠ Update error: ' + err.message;
+    console.error('updatePrices failed:', err);
+  } finally {
+    // Always re-enable — even if a render function threw
+    btn.disabled = false;
+    icon.textContent = '⟳';
+  }
+}
+
+// ──────────────────────────────────────────
+//  Render tables
+// ──────────────────────────────────────────
+function renderTables(rate) {
+  const cfgs = [
+    { key:'us',   cur:'$', isUS:true  },
+    { key:'thai', cur:'฿', isUS:false }
+    // fund is handled by renderFundNAVTable()
+  ];
+  cfgs.forEach(({ key, cur, isUS }) => {
+    const data = live[key] || [];
+    const el = document.getElementById(`tbl-${key}`);
+    const unit = key==='fund'?'units':'shares';
+    if (!data.length) {
+      el.innerHTML = `<div class="twrap"><div class="empty">No ${key==='us'?'US stocks':key==='thai'?'Thai stocks':'funds'} added yet.</div></div>`;
+      return;
+    }
+    const rows = data.map(item => {
+      const p = item.price;
+      const pl = p!==null ? ((p-item.avgCost)/item.avgCost*100) : null;
+      const plAmt = p!==null ? ((p-item.avgCost)*item.totalQty*(isUS?rate:1)) : null;
+      const isPos = pl!==null && pl>=0;
+      const plBadge = pl===null
+        ? `<span class="pl-badge pl-zero">—</span>`
+        : `<span class="pl-badge ${isPos?'pl-pos':'pl-neg'}">${isPos?'+':''}${pl.toFixed(2)}%</span>`;
+      const srcTag = item.source ? `<span style="font-size:10px;color:var(--text-muted);margin-left:5px;opacity:.7">${item.source}</span>` : '';
+      const priceCell = p!==null
+        ? `${cur}${fmt(p)}${srcTag}`
+        : `<span class="err-price">⚠ Not found</span>`;
+      const divCell = item.divYield ? `${item.divYield}%` : `<span style="color:var(--text-muted)">—</span>`;
+      const ndCell = item.nextDiv || `<span style="color:var(--text-muted)">—</span>`;
+      return `<tr>
+        <td><strong>${item.name}</strong><br><span style="font-size:11px;color:var(--text-muted)">${fmt(item.totalQty,key==='fund'?4:0)} ${unit}</span></td>
+        <td>${cur}${fmt(item.avgCost)}</td>
+        <td><strong>${priceCell}</strong></td>
+        <td>
+          ${plBadge}
+          ${plAmt!==null?`<div style="font-size:11px;color:var(--text-muted);margin-top:3px">${isPos?'+':'−'}฿${fmt(Math.abs(plAmt),0)}</div>`:''}
+        </td>
+        <td>${divCell}</td>
+        <td>${ndCell}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<div class="twrap"><table>
+      <thead><tr>
+        <th>Name</th><th>Avg Cost</th><th>Latest Price</th><th>P/L (%)</th><th>Dividend Yield</th><th>Next Div. Date</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  });
+}
+
+// ──────────────────────────────────────────
+//  Stats cards
+// ──────────────────────────────────────────
+function renderStats(rate) {
+  function catVal(key, isUS) {
+    return (live[key]||[]).reduce((s,x)=>s+((x.price??x.avgCost)*x.totalQty*(isUS?rate:1)),0);
+  }
+  function catCost(key, isUS) {
+    return (live[key]||[]).reduce((s,x)=>s+(x.avgCost*x.totalQty*(isUS?rate:1)),0);
+  }
+  const vThai=catVal('thai',false), vUS=catVal('us',true), vFund=catVal('fund',false);
+  const cThai=catCost('thai',false), cUS=catCost('us',true), cFund=catCost('fund',false);
+  const vTotal=vThai+vUS+vFund, cTotal=cThai+cUS+cFund;
+  const pl=vTotal-cTotal, plPct=cTotal>0?(pl/cTotal*100):0;
+
+  function subHtml(v,c) {
+    const p=v-c, pp=c>0?(p/c*100):0, pos=p>=0;
+    return `<span class="${pos?'pos':'neg'}">${pos?'+':'−'}฿${fmt(Math.abs(p),0)} (${pos?'+':''}${pp.toFixed(2)}%)</span>`;
+  }
+  function subHtmlUSD(v,c) {
+    const p=v-c, pp=c>0?(p/c*100):0, pos=p>=0;
+    return `<span class="${pos?'pos':'neg'}">${pos?'+':'−'}$${fmt(Math.abs(p),2)} (${pos?'+':''}${pp.toFixed(2)}%)</span>`;
+  }
+
+  const vUS_usd = rate > 0 ? vUS / rate : 0;
+  const cUS_usd = rate > 0 ? cUS / rate : 0;
+
+  document.getElementById('s-total').textContent = fmtTHB(vTotal);
+  document.getElementById('s-pl').innerHTML = `<span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':'−'}฿${fmt(Math.abs(pl),0)} (${pl>=0?'+':''}${plPct.toFixed(2)}%)</span>`;
+  document.getElementById('s-thai').textContent = fmtTHB(vThai);
+  document.getElementById('s-thai-pl').innerHTML = subHtml(vThai,cThai);
+  document.getElementById('s-us').textContent = fmtUSD(vUS_usd);
+  document.getElementById('s-us-pl').innerHTML = subHtmlUSD(vUS_usd,cUS_usd);
+  document.getElementById('s-fund').textContent = fmtTHB(vFund);
+  document.getElementById('s-fund-pl').innerHTML = subHtml(vFund,cFund);
+}
+
+// ──────────────────────────────────────────
+//  Fund NAV table (manual entry, always visible on Summary tab)
+// ──────────────────────────────────────────
+function renderFundNAVTable() {
+  const el = document.getElementById('tbl-fund');
+  const rate = parseFloat(document.getElementById('fx-rate').value) || 35;
+
+  // Base data: live.fund if fetched, otherwise build from portfolio
+  const base = live.fund?.length
+    ? live.fund
+    : grouped(port.fund).map(g => ({
+        ...g,
+        price:    manualNAV[g.name] ?? null,
+        divYield: null,
+        nextDiv:  null,
+        source:   manualNAV[g.name] ? 'Manual' : null
+      }));
+
+  document.getElementById('cnt-fund').textContent = base.length;
+
+  if (!base.length) {
+    el.innerHTML = '<div class="twrap"><div class="empty">No funds added yet.</div></div>';
+    return;
+  }
+
+  const rows = base.map(item => {
+    // Use live price, then manual NAV cache
+    const p = item.price ?? manualNAV[item.name] ?? null;
+    const pl    = p != null ? ((p - item.avgCost) / item.avgCost * 100) : null;
+    const plAmt = p != null ? ((p - item.avgCost) * item.totalQty) : null;
+    const isPos = pl != null && pl >= 0;
+    const plBadge = pl == null
+      ? `<span class="pl-badge pl-zero">—</span>`
+      : `<span class="pl-badge ${isPos ? 'pl-pos' : 'pl-neg'}">${isPos ? '+' : ''}${pl.toFixed(2)}%</span>`;
+    const src = item.source ?? (manualNAV[item.name] ? 'Manual' : null);
+    const srcLabel = src ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${src}</div>` : '';
+    return `<tr>
+      <td><strong>${item.name}</strong><br><span style="font-size:11px;color:var(--text-muted)">${fmt(item.totalQty,4)} units</span></td>
+      <td>฿${fmt(item.avgCost,4)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="color:var(--text-muted);font-size:11px">฿</span>
+          <input type="number" class="nav-inp" value="${p ?? ''}" placeholder="Enter NAV"
+            step="0.0001" min="0"
+            onchange="setManualNAV('${item.name}', this.value)"
+            onkeydown="if(event.key==='Enter') this.blur()">
+        </div>
+        ${srcLabel}
+      </td>
+      <td>
+        ${plBadge}
+        ${plAmt != null ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">${isPos?'+':'−'}฿${fmt(Math.abs(plAmt),0)}</div>` : ''}
+      </td>
+      <td><span style="color:var(--text-muted)">—</span></td>
+      <td><span style="color:var(--text-muted)">—</span></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `<div class="twrap"><table>
+    <thead><tr>
+      <th>Name</th><th>Avg Cost</th><th>NAV <span style="font-weight:400;opacity:.6">(enter from Kasikorn)</span></th><th>P/L (%)</th><th>Dividend Yield</th><th>Next Div. Date</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+// ──────────────────────────────────────────
+//  Set Manual NAV — called by table input onchange
+// ──────────────────────────────────────────
+function setManualNAV(name, value) {
+  const nav = parseFloat(value);
+  if (!nav || nav <= 0) return;
+
+  manualNAV[name] = nav;
+  localStorage.setItem('inv_manual_nav', JSON.stringify(manualNAV));
+
+  // Update or insert into live.fund so stats/charts pick it up
+  if (!live.fund) live.fund = [];
+  const existing = live.fund.find(x => x.name === name);
+  if (existing) {
+    existing.price  = nav;
+    existing.source = 'Manual';
+  } else {
+    const grp = grouped(port.fund).find(g => g.name === name);
+    if (grp) live.fund.push({ ...grp, price: nav, divYield: null, nextDiv: null, source: 'Manual' });
+  }
+
+  const rate = parseFloat(document.getElementById('fx-rate').value) || 35;
+  renderFundNAVTable();
+  renderStats(rate);
+  renderCharts(rate);
+}
+
+// ──────────────────────────────────────────
+//  Charts
+// ──────────────────────────────────────────
+const PALETTE = ['#22c55e','#5b6cf8','#f59e0b','#f43f5e','#8b5cf6','#06b6d4','#f97316','#14b8a6','#ec4899','#84cc16','#3b82f6','#a78bfa'];
+
+function renderCharts(rate) {
+  function val(key, isUS) { return (live[key]||[]).reduce((s,x)=>s+((x.price??x.avgCost)*x.totalQty*(isUS?rate:1)),0); }
+
+  const vThai=val('thai',false), vUS=val('us',true), vFund=val('fund',false);
+  const catLbl=[], catDat=[], catCol=[];
+  if(vThai>0){catLbl.push('Thai Stocks');catDat.push(vThai);catCol.push('#22c55e');}
+  if(vUS>0)  {catLbl.push('US Stocks');  catDat.push(vUS);  catCol.push('#5b6cf8');}
+  if(vFund>0){catLbl.push('Invest Funds');catDat.push(vFund);catCol.push('#f59e0b');}
+
+  const all = [
+    ...(live.thai||[]).map(x=>({n:x.name,v:(x.price??x.avgCost)*x.totalQty})),
+    ...(live.us  ||[]).map(x=>({n:x.name,v:(x.price??x.avgCost)*x.totalQty*rate})),
+    ...(live.fund||[]).map(x=>({n:x.name,v:(x.price??x.avgCost)*x.totalQty}))
+  ].filter(x=>x.v>0);
+
+  const chartOpts = (labels, data, colors) => ({
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:0, hoverOffset:10 }] },
+    options:{
+      cutout:'60%', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ color:'#8ba3c4', padding:14, usePointStyle:true, pointStyle:'circle', font:{size:12} }},
+        tooltip:{ callbacks:{ label:ctx=>{ const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return ` ${ctx.label}: ฿${ctx.parsed.toLocaleString('en',{maximumFractionDigits:0})} (${(ctx.parsed/t*100).toFixed(1)}%)`; }}}
+      }
+    }
+  });
+
+  if(ch.alloc) ch.alloc.destroy();
+  if(catDat.length) ch.alloc = new Chart(document.getElementById('ch-alloc'), chartOpts(catLbl,catDat,catCol));
+
+  if(ch.hold) ch.hold.destroy();
+  if(all.length) ch.hold = new Chart(document.getElementById('ch-hold'), chartOpts(all.map(x=>x.n), all.map(x=>x.v), PALETTE.slice(0,all.length)));
+}
+
+// ──────────────────────────────────────────
+//  yo.json  Save / Load
+// ──────────────────────────────────────────
+function saveJSON() {
+  const payload = {
+    version: '1',
+    savedAt: new Date().toISOString(),
+    portfolio: port,
+    manualNAV: manualNAV,
+    dividends: dividends,
+    reinvests: reinvests
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: 'yo.json'
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showStatus('Saved yo.json', 'ok');
+  document.getElementById('dbar-info').textContent =
+    'Last saved: ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function loadJSON() { document.getElementById('json-file').click(); }
+
+function onJSONLoad(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const p = data.portfolio ?? data;          // support bare portfolio object too
+      if (!p.thai && !p.us && !p.fund) throw new Error('Unrecognised format');
+      port = { thai: p.thai||[], us: p.us||[], fund: p.fund||[] };
+      if (data.manualNAV && typeof data.manualNAV === 'object') {
+        manualNAV = data.manualNAV;
+        localStorage.setItem('inv_manual_nav', JSON.stringify(manualNAV));
+      }
+      if (Array.isArray(data.dividends)) { dividends = data.dividends; saveDividends(); }
+      if (Array.isArray(data.reinvests)) { reinvests  = data.reinvests;  saveReinvests();  }
+      save();
+      rebuildDropdowns();
+      renderEntries();
+      refreshCounts();
+      const savedAt = data.savedAt ? ' (saved ' + new Date(data.savedAt).toLocaleDateString() + ')' : '';
+      showStatus('Loaded yo.json' + savedAt, 'ok');
+      document.getElementById('dbar-info').textContent = 'Loaded from yo.json' + savedAt;
+    } catch(err) {
+      showStatus('Could not parse yo.json: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('dbar-status');
+  el.textContent = msg;
+  el.className = 'dbar-status dbar-' + type;
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => { el.textContent = ''; el.className = 'dbar-status'; }, 4000);
+}
+
+// ──────────────────────────────────────────
+//  Export Report  (opens in new window → Print → Save as PDF)
+// ──────────────────────────────────────────
+function exportReport() {
+  const win = window.open('', '_blank');
+  if (!win) { alert('Allow pop-ups for this page to export the report.'); return; }
+  win.document.write(buildReportHTML());
+  win.document.close();
+}
+
+function buildReportHTML() {
+  const rate = parseFloat(document.getElementById('fx-rate').value) || 35;
+  const now  = new Date();
+  const hasLive = ['us','thai','fund'].some(k => (live[k]||[]).some(x => x.price != null));
+
+  function catVal(key, isUS) {
+    const items = live[key]?.length ? live[key] : grouped(port[key]).map(x=>({...x,price:null}));
+    return items.reduce((s,x)=>s+((x.price??x.avgCost)*x.totalQty*(isUS?rate:1)),0);
+  }
+  function catCost(key, isUS) {
+    return grouped(port[key]).reduce((s,x)=>s+(x.avgCost*x.totalQty*(isUS?rate:1)),0);
+  }
+
+  const vThai=catVal('thai',false), vUS=catVal('us',true), vFund=catVal('fund',false);
+  const cThai=catCost('thai',false), cUS=catCost('us',true), cFund=catCost('fund',false);
+  const vUS_usd = rate > 0 ? vUS / rate : 0;
+  const cUS_usd = rate > 0 ? cUS / rate : 0;
+  const vTotal=vThai+vUS+vFund, cTotal=cThai+cUS+cFund;
+  const pl=vTotal-cTotal, plPct=cTotal>0?(pl/cTotal*100):0;
+  const plSign = pl>=0?'+':'';
+
+  function pct(v) { return vTotal>0?(v/vTotal*100).toFixed(1)+'%':'—'; }
+
+  function sectionHTML(title, key, cur, isUS) {
+    const items = live[key]?.length ? live[key] : grouped(port[key]).map(x=>({...x,price:null}));
+    if (!items.length) return `<div class="sec"><div class="sec-title">${title}</div><p class="empty-note">No entries.</p></div>`;
+    let secTotal = 0;
+    const rows = items.map(item => {
+      const p    = item.price ?? item.avgCost;
+      const plI  = item.price!=null ? ((item.price-item.avgCost)/item.avgCost*100) : null;
+      const plA  = item.price!=null ? ((item.price-item.avgCost)*item.totalQty*(isUS?rate:1)) : null;
+      const val  = p*item.totalQty*(isUS?rate:1);
+      secTotal  += val;
+      const unit = key==='fund'?'units':'shares';
+      const priceStr = item.price!=null ? `${cur}${fmt(item.price)}` : `${cur}${fmt(item.avgCost)} <small>(avg)</small>`;
+      const plClass  = plI==null?'':plI>=0?'pos':'neg';
+      const plStr    = plI==null?'—':`${plI>=0?'+':''}${plI.toFixed(2)}%`;
+      const plAStr   = plA==null?'—':`${plA>=0?'+':'−'}฿${fmt(Math.abs(plA),0)}`;
+      const plAClass = plA==null?'':plA>=0?'pos':'neg';
+      return `<tr>
+        <td><b>${item.name}</b><br><small>${fmt(item.totalQty,key==='fund'?4:0)} ${unit}</small></td>
+        <td>${cur}${fmt(item.avgCost)}</td>
+        <td>${priceStr}</td>
+        <td class="${plClass}">${plStr}</td>
+        <td class="${plAClass}">${plAStr}</td>
+        <td>${item.divYield?item.divYield+'%':'—'}</td>
+        <td>${item.nextDiv||'—'}</td>
+        <td class="r"><b>฿${fmt(val,0)}</b></td>
+      </tr>`;
+    }).join('');
+    return `<div class="sec">
+      <div class="sec-title">${title}</div>
+      <table>
+        <thead><tr><th>Name</th><th>Avg Cost</th><th>Latest Price</th><th>P/L%</th><th>P/L (฿)</th><th>Div Yield</th><th>Next Div</th><th class="r">Value (฿)</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="7"><b>Subtotal</b></td><td class="r"><b>฿${fmt(secTotal,0)}</b></td></tr></tfoot>
+      </table>
+    </div>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Investment Report ${now.toLocaleDateString('en-GB')}</title>
+<style>
+  @page{margin:18mm;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;padding:36px 40px;font-size:13px;}
+  h1{font-size:22px;font-weight:800;color:#0f172a;margin-bottom:2px;}
+  .meta{color:#64748b;font-size:12px;margin-bottom:28px;}
+  .warn{background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:9px 14px;font-size:12px;color:#854d0e;margin-bottom:20px;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px;}
+  .stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;}
+  .sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:5px;}
+  .sv{font-size:18px;font-weight:800;color:#0f172a;}
+  .ss{font-size:12px;margin-top:3px;}
+  .sec{margin-bottom:28px;}
+  .sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;border-bottom:2px solid #e2e8f0;padding-bottom:7px;margin-bottom:12px;}
+  .empty-note{font-size:13px;color:#94a3b8;padding:8px 0;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{background:#1e293b;}
+  th{color:#fff;padding:9px 11px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+  td{padding:9px 11px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+  tbody tr:nth-child(even) td{background:#f8fafc;}
+  tfoot tr td{background:#f1f5f9;font-size:12px;border-top:2px solid #e2e8f0;}
+  td small{color:#94a3b8;font-size:11px;}
+  .pos{color:#16a34a;font-weight:600;}
+  .neg{color:#dc2626;font-weight:600;}
+  .r{text-align:right;}
+  .footer{margin-top:32px;border-top:1px solid #e2e8f0;padding-top:14px;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between;}
+  .print-bar{display:flex;gap:10px;margin-bottom:24px;}
+  .pbtn{padding:9px 18px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;}
+  .pbtn-print{background:#1e293b;color:#fff;}
+  .pbtn-close{background:#f1f5f9;color:#475569;}
+  @media print{.print-bar{display:none;}}
+</style>
+</head>
+<body>
+<div class="print-bar">
+  <button class="pbtn pbtn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+  <button class="pbtn pbtn-close" onclick="window.close()">✕ Close</button>
+</div>
+${!hasLive?'<div class="warn">⚠ Live prices were not fetched — values below use average buy costs. Click "Update Prices" then re-export for live data.</div>':''}
+<h1>Investment Portfolio Report</h1>
+<div class="meta">
+  Generated: ${now.toLocaleString('en-US',{dateStyle:'full',timeStyle:'short'})}
+  &nbsp;·&nbsp; Exchange Rate: 1 USD = ${rate.toFixed(2)} THB
+  &nbsp;·&nbsp; Data sources: Settrade (Thai / Funds) · Yahoo Finance (US)
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="sl">Total Portfolio</div>
+    <div class="sv">฿${fmt(vTotal,0)}</div>
+    <div class="ss ${pl>=0?'pos':'neg'}">${plSign}฿${fmt(Math.abs(pl),0)} (${plSign}${plPct.toFixed(2)}%)</div>
+  </div>
+  <div class="stat">
+    <div class="sl">Thai Stocks</div>
+    <div class="sv">฿${fmt(vThai,0)}</div>
+    <div class="ss" style="color:#64748b">${pct(vThai)} of portfolio</div>
+  </div>
+  <div class="stat">
+    <div class="sl">US Stocks (USD)</div>
+    <div class="sv">$${fmt(vUS_usd,2)}</div>
+    <div class="ss ${vUS_usd-cUS_usd>=0?'pos':'neg'}">${vUS_usd-cUS_usd>=0?'+':'−'}$${fmt(Math.abs(vUS_usd-cUS_usd),2)} (${cUS_usd>0?((vUS_usd-cUS_usd)/cUS_usd*100).toFixed(2):'0.00'}%)</div>
+  </div>
+  <div class="stat">
+    <div class="sl">Invest Funds</div>
+    <div class="sv">฿${fmt(vFund,0)}</div>
+    <div class="ss" style="color:#64748b">${pct(vFund)} of portfolio</div>
+  </div>
+</div>
+
+${sectionHTML('US Stocks (USD → THB @ '+rate.toFixed(2)+')', 'us', '$', true)}
+${sectionHTML('Thai Stocks (THB)', 'thai', '฿', false)}
+${sectionHTML('Investment Funds — NAV (THB)', 'fund', '฿', false)}
+
+<div class="footer">
+  <span>Investment Portfolio Tracker · yo.json</span>
+  <span>฿${fmt(vTotal,0)} total · ${plSign}${plPct.toFixed(2)}% overall</span>
+</div>
+</body>
+</html>`;
+}
+
+// ──────────────────────────────────────────
+//  Dividend Yield tab
+// ──────────────────────────────────────────
+function saveDividends() { localStorage.setItem('inv_dividends', JSON.stringify(dividends)); }
+function saveReinvests()  { localStorage.setItem('inv_reinvests',  JSON.stringify(reinvests));  }
+
+function refreshDivDropdowns() {
+  const usStocks = unique('us');
+  ['div-stock','reinv-stock'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">— Select Stock —</option>`;
+    usStocks.forEach(n => { const o = document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    if (prev) sel.value = prev;
+  });
+}
+
+function divTotals() {
+  const received   = dividends.reduce((s,d) => s + d.amount, 0);
+  const reinvested = reinvests.reduce((s,r)  => s + r.totalCost, 0);
+  return { received, reinvested, balance: Math.max(0, received - reinvested) };
+}
+
+function renderYieldSummary() {
+  const rate = parseFloat(document.getElementById('fx-rate')?.value) || 35;
+
+  // Annual projected: from live dividend yield data × current holdings
+  let annualProjected = 0;
+  let hasLiveYield = false;
+  if (live.us && live.us.length > 0) {
+    live.us.forEach(s => {
+      if (s.price && s.divYield) {
+        annualProjected += s.price * s.totalQty * (parseFloat(s.divYield) / 100);
+        hasLiveYield = true;
+      }
+    });
+  }
+
+  // Avg monthly actual: total recorded dividends in last 12 months ÷ 12
+  const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const ttmActual = dividends
+    .filter(d => new Date(d.date) >= cutoff)
+    .reduce((s, d) => s + d.amount, 0);
+  const avgMonthlyActual = ttmActual / 12;
+
+  const monthlyProjected = annualProjected / 12;
+
+  // Big display number: prefer live projection, fallback to actual avg
+  const displayMonthly = hasLiveYield ? monthlyProjected : (avgMonthlyActual > 0 ? avgMonthlyActual : null);
+
+  document.getElementById('mt-monthly').textContent  = displayMonthly != null ? '$' + fmt(displayMonthly) : '—';
+  document.getElementById('mt-monthly2').textContent = hasLiveYield ? '$' + fmt(monthlyProjected) : '—';
+  document.getElementById('mt-monthly-thb').textContent = displayMonthly != null
+    ? '≈ ฿' + fmt(displayMonthly * rate, 0) + ' / month'
+    : '';
+  document.getElementById('mt-annual').textContent   = hasLiveYield ? '$' + fmt(annualProjected) : '—';
+  document.getElementById('mt-actual-avg').textContent = avgMonthlyActual > 0 ? '$' + fmt(avgMonthlyActual) : '—';
+  document.getElementById('mt-source').textContent   = hasLiveYield
+    ? 'Projected from current holdings × live dividend yields'
+    : avgMonthlyActual > 0
+      ? 'Based on last 12 months actual dividends'
+      : 'Update prices to calculate projected yield';
+}
+
+function updateDivStats() {
+  const { received, reinvested, balance } = divTotals();
+  document.getElementById('div-total').textContent        = '$' + fmt(received);
+  document.getElementById('div-count').textContent        = dividends.length + ' payment' + (dividends.length !== 1 ? 's' : '');
+  document.getElementById('div-reinvested').textContent   = '$' + fmt(reinvested);
+  document.getElementById('div-reinvest-count').textContent = reinvests.length + ' transaction' + (reinvests.length !== 1 ? 's' : '');
+  document.getElementById('div-balance').textContent      = '$' + fmt(balance);
+}
+
+function calcReinvest() {
+  const price  = parseFloat(document.getElementById('reinv-price').value)  || 0;
+  const shares = parseFloat(document.getElementById('reinv-shares').value) || 0;
+  const cost   = price * shares;
+  const { balance } = divTotals();
+  const remain = balance - cost;
+  document.getElementById('reinv-cost').textContent  = '$' + fmt(cost);
+  document.getElementById('reinv-avail').textContent = '$' + fmt(balance);
+  const el = document.getElementById('reinv-remain');
+  el.textContent = (remain < 0 ? '−$' : '$') + fmt(Math.abs(remain));
+  el.className = remain < 0 ? 'neg' : remain > 0 ? 'pos' : '';
+}
+
+function addDividend() {
+  const stock  = document.getElementById('div-stock').value;
+  const amount = parseFloat(document.getElementById('div-amount').value);
+  const date   = document.getElementById('div-date').value;
+  if (!stock)            { alert('Please select a stock.');          return; }
+  if (!amount || amount<=0) { alert('Please enter a valid amount.'); return; }
+  if (!date)             { alert('Please select a date.');           return; }
+  dividends.push({ id: Date.now(), stock, amount, date });
+  saveDividends();
+  document.getElementById('div-amount').value = '';
+  document.getElementById('div-stock').value  = '';
+  renderDivTab();
+}
+
+function deleteDividend(id) {
+  dividends = dividends.filter(d => d.id !== id);
+  saveDividends();
+  renderDivTab();
+}
+
+function reinvestDividend() {
+  const stock  = document.getElementById('reinv-stock').value;
+  const price  = parseFloat(document.getElementById('reinv-price').value);
+  const shares = parseFloat(document.getElementById('reinv-shares').value);
+  const date   = document.getElementById('reinv-date').value;
+  if (!stock)               { alert('Please select a stock.');            return; }
+  if (!price  || price<=0)  { alert('Please enter a valid price/share.'); return; }
+  if (!shares || shares<=0) { alert('Please enter a valid share count.'); return; }
+  if (!date)                { alert('Please select a date.');             return; }
+
+  const totalCost = price * shares;
+  const { balance } = divTotals();
+  if (totalCost > balance + 0.001) {
+    alert(`Insufficient balance.\nAvailable: $${fmt(balance)}\nRequired: $${fmt(totalCost)}`);
+    return;
+  }
+
+  const rid = Date.now();
+  // Record reinvestment
+  reinvests.push({ id: rid, stock, shares, pricePerShare: price, totalCost, date });
+  saveReinvests();
+
+  // Add shares into US portfolio (linked by reinvestId so it can be removed)
+  port.us.push({ id: rid + 1, name: stock, buyPrice: price, quantity: shares, buyDate: date, reinvestId: rid });
+  save();
+  rebuildDropdowns();
+  renderEntries();
+
+  // Clear form
+  document.getElementById('reinv-stock').value  = '';
+  document.getElementById('reinv-price').value  = '';
+  document.getElementById('reinv-shares').value = '';
+  renderDivTab();
+}
+
+function deleteReinvestment(rid) {
+  const entry = reinvests.find(r => r.id === rid);
+  reinvests = reinvests.filter(r => r.id !== rid);
+  saveReinvests();
+  if (entry) {
+    port.us = port.us.filter(e => e.reinvestId !== rid);
+    save();
+    rebuildDropdowns();
+    renderEntries();
+  }
+  renderDivTab();
+}
+
+function renderDivHistory() {
+  const el = document.getElementById('div-history');
+  if (!dividends.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="entries-head">History (${dividends.length})</div>` +
+    dividends.slice().reverse().map(d => `
+      <div class="entry">
+        <div>
+          <div class="entry-name">${d.stock}</div>
+          <div class="entry-detail">$${fmt(d.amount)} · ${d.date}</div>
+        </div>
+        <button class="del-btn" onclick="deleteDividend(${d.id})">✕</button>
+      </div>`).join('');
+}
+
+function renderReinvestHistory() {
+  const el = document.getElementById('reinv-history');
+  if (!reinvests.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="entries-head">Reinvestment Log (${reinvests.length})</div>` +
+    reinvests.slice().reverse().map(r => `
+      <div class="entry">
+        <div>
+          <div class="entry-name">${r.stock} <span style="font-weight:400;color:var(--text-muted);font-size:11px">↪ ${fmt(r.shares,4)} shares @ $${fmt(r.pricePerShare)}</span></div>
+          <div class="entry-detail">Total $${fmt(r.totalCost)} · ${r.date}</div>
+        </div>
+        <button class="del-btn" onclick="deleteReinvestment(${r.id})">✕</button>
+      </div>`).join('');
+}
+
+function renderDivByStock() {
+  const el = document.getElementById('div-by-stock');
+  if (!dividends.length) {
+    el.innerHTML = '<div class="twrap"><div class="empty">No dividend records yet.</div></div>';
+    return;
+  }
+  const byStock = {};
+  dividends.forEach(d => {
+    if (!byStock[d.stock]) byStock[d.stock] = { total: 0, count: 0, last: '' };
+    byStock[d.stock].total += d.amount;
+    byStock[d.stock].count++;
+    if (d.date > byStock[d.stock].last) byStock[d.stock].last = d.date;
+  });
+  const rows = Object.entries(byStock)
+    .sort((a,b) => b[1].total - a[1].total)
+    .map(([stock, data]) => `<tr>
+      <td><strong>${stock}</strong></td>
+      <td class="pos"><strong>$${fmt(data.total)}</strong></td>
+      <td>${data.count}</td>
+      <td>${data.last}</td>
+    </tr>`).join('');
+  el.innerHTML = `<div class="twrap"><table>
+    <thead><tr><th>Stock</th><th>Total Received (USD)</th><th>Payments</th><th>Last Payment</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function renderDivTab() {
+  refreshDivDropdowns();
+  updateDivStats();
+  renderDivHistory();
+  renderReinvestHistory();
+  renderDivByStock();
+  calcReinvest();
+  renderYieldSummary();
+}
+
+// ──────────────────────────────────────────
+//  Start
+// ──────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

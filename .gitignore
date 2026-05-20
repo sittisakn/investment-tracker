@@ -1,0 +1,6 @@
+# Keep only index.html public
+investment_tracker.html
+investment_tracker copy.html
+proxy.py
+*.txt
+.DS_Store
