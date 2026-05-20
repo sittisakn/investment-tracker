@@ -570,7 +570,10 @@ function saveTDKey(val) {
 // ──────────────────────────────────────────
 let proxyOk = false;
 
+const isOnline = window.location.hostname !== '' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
 async function checkProxy(manual) {
+  if (isOnline) { proxyOk = false; return; }
   try {
     const r = await fetchWithTimeout('http://localhost:3001/health', 2000);
     proxyOk = r.ok;
